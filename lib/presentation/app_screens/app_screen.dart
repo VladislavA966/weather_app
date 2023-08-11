@@ -33,11 +33,11 @@ class WeatherApp extends StatelessWidget {
     Color gradientEndColor;
     String image;
 
-    if (currentTime.hour >= 6 && currentTime.hour < 12) {
+    if (currentTime.hour > 6 || currentTime.hour < 12) {
       gradientStartColor = AppColors.bgRed;
       gradientEndColor = AppColors.bgYellow;
       image = 'assets/images/bigSun.svg';
-    } else if (currentTime.hour >= 12 && currentTime.hour < 18) {
+    } else if (currentTime.hour > 12 || currentTime.hour < 18) {
       gradientStartColor = AppColors.bgDayStart;
       gradientEndColor = AppColors.bgDayEnd;
       image = 'assets/images/bigSun.svg';
@@ -111,7 +111,7 @@ class WeatherApp extends StatelessWidget {
                     'May XX, 20XX',
                     style: AppFonts.w400s22.copyWith(color: AppColors.white),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 30,
                   ),
                   ListView.builder(
