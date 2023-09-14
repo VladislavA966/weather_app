@@ -1,50 +1,49 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+import 'package:intl/intl.dart';
+import 'package:weather_app/core/consts.dart';
+import 'package:weather_app/core/weather_model.dart';
 
 import '../recources/app_colors/app_colors.dart';
 import '../recources/app_fonts/app_fonts.dart';
 
-class WeatherApp extends StatelessWidget {
-  List<WeekTemperatureModel> items = [
-    WeekTemperatureModel(
-        day: 'Monday', image: 'assets/images/sun.svg', min: '10', max: '10'),
-    WeekTemperatureModel(
-        day: 'Tuesday', image: 'assets/images/cloud.svg', min: '10', max: '10'),
-    WeekTemperatureModel(
-        day: 'Wednesday',
-        image: 'assets/images/rain.svg',
-        min: '10',
-        max: '10'),
-    WeekTemperatureModel(
-        day: 'Thursday', image: 'assets/images/rain.svg', min: '10', max: '10'),
-    WeekTemperatureModel(
-        day: 'Friday', image: 'assets/images/snow.svg', min: '10', max: '10'),
-  ];
-
-  WeatherApp({
+class WeatherApp extends StatefulWidget {
+  const WeatherApp({
     super.key,
   });
 
   @override
+  State<WeatherApp> createState() => _WeatherAppState();
+}
+
+String city = '';
+String weatherType = '';
+String image = '';
+String temperature = '';
+String weatherIcon = 'https://openweathermap.org/img/wn/10d@2x.png';
+String cityName = '';
+String? errorText;
+
+class _WeatherAppState extends State<WeatherApp> {
+  final TextEditingController controller = TextEditingController();
+
+  @override
   Widget build(BuildContext context) {
     DateTime currentTime = DateTime.now();
+    String formattedDate = DateFormat.yMMMMd().format(DateTime.now());
 
     Color gradientStartColor;
     Color gradientEndColor;
-    String image;
 
-    if (currentTime.hour > 6 || currentTime.hour < 12) {
+    if (currentTime.hour >= 6 || currentTime.hour < 12) {
       gradientStartColor = AppColors.bgRed;
       gradientEndColor = AppColors.bgYellow;
-      image = 'assets/images/bigSun.svg';
-    } else if (currentTime.hour > 12 || currentTime.hour < 18) {
+    } else if (currentTime.hour >= 12 && currentTime.hour < 18) {
       gradientStartColor = AppColors.bgDayStart;
       gradientEndColor = AppColors.bgDayEnd;
-      image = 'assets/images/bigSun.svg';
     } else {
       gradientStartColor = AppColors.bgNightStart;
       gradientEndColor = AppColors.bgNightEnd;
-      image = 'assets/images/moon.svg';
     }
     return SafeArea(
       child: Scaffold(
@@ -66,16 +65,33 @@ class WeatherApp extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                    height: 30,
-                    width: 170,
-                    child: const TextField(
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      onChanged: (value) {
+                        if (value.isEmpty) {
+                          errorText = null;
+                        }
+                        setState(() {});
+                      },
+                      controller: controller,
                       decoration: InputDecoration(
-                        focusedBorder: OutlineInputBorder(),
-                        enabledBorder: OutlineInputBorder(),
+                        errorText: errorText,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            getData(cityName = controller.text);
+                          },
+                          icon: Icon(Icons.search),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
                     ),
                   ),
@@ -83,45 +99,36 @@ class WeatherApp extends StatelessWidget {
                     height: 10,
                   ),
                   Text(
-                    'San Francisco',
+                    city,
                     style: AppFonts.w400s36.copyWith(color: AppColors.white),
                   ),
                   const SizedBox(
                     height: 20,
                   ),
                   Text(
-                    'Clear',
+                    weatherType,
                     style: AppFonts.w400s24.copyWith(color: AppColors.white),
                   ),
                   const SizedBox(
                     height: 20,
                   ),
-                  SvgPicture.asset(image),
+                  Image.network(weatherIcon),
                   const SizedBox(
                     height: 20,
                   ),
                   Text(
-                    '11',
+                    temperature,
                     style: AppFonts.w700s72.copyWith(color: AppColors.white),
                   ),
                   const SizedBox(
                     height: 20,
                   ),
                   Text(
-                    'May XX, 20XX',
+                    formattedDate,
                     style: AppFonts.w400s22.copyWith(color: AppColors.white),
                   ),
                   const SizedBox(
                     height: 30,
-                  ),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: items.length,
-                    itemBuilder: (BuildContext context, index) {
-                      return WeekTemperature(
-                        model: items[index],
-                      );
-                    },
                   ),
                 ],
               ),
@@ -131,60 +138,29 @@ class WeatherApp extends StatelessWidget {
       ),
     );
   }
-}
 
-class WeekTemperature extends StatelessWidget {
-  final WeekTemperatureModel model;
-  const WeekTemperature({
-    super.key,
-    required this.model,
-  });
+  Future<void> getData(String cityName) async {
+    final Dio dio = Dio();
+    try {
+      final response = await dio.get(
+        'https://api.openweathermap.org/data/2.5/weather',
+        queryParameters: {
+          "q": cityName,
+          "appid": AppConsts.apiKey,
+          "units": 'metric',
+          "lang": 'ru',
+        },
+      );
+      final model = WeatherModel.fromJson(response.data);
+      city = model.name ?? '';
+      weatherType = model.weather?.first.description ?? '';
+      image = model.weather?.first.icon ?? '';
+      temperature = model.main?.temp?.round().toString() ?? '';
+      weatherIcon = 'https://openweathermap.org/img/wn/$image@2x.png';
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 20,
-        horizontal: 10,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              model.day,
-              style: AppFonts.w400s20.copyWith(color: AppColors.white),
-            ),
-          ),
-          SvgPicture.asset(model.image),
-          const SizedBox(
-            width: 100,
-          ),
-          Text(
-            model.min,
-            style: AppFonts.w400s20.copyWith(color: AppColors.white),
-          ),
-          const SizedBox(
-            width: 20,
-          ),
-          Text(
-            model.max,
-            style: AppFonts.w400s20.copyWith(color: AppColors.grey),
-          ),
-        ],
-      ),
-    );
+      setState(() {});
+    } catch (e) {
+      errorText = 'Не верный город, проверьте запрос';
+    }
   }
-}
-
-class WeekTemperatureModel {
-  String day;
-  String image;
-  String min;
-  String max;
-  WeekTemperatureModel(
-      {required this.day,
-      required this.image,
-      required this.min,
-      required this.max});
 }
