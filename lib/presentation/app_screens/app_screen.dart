@@ -73,7 +73,7 @@ class _WeatherAppState extends State<WeatherApp> {
                         children: [
                           IconButton(
                             onPressed: () {
-                             vmWatch.changeTheme();
+                              vmWatch.changeTheme();
                             },
                             icon: Icon(vmWatch.isLightTheme
                                 ? Icons.sunny
@@ -125,7 +125,7 @@ class _WeatherAppState extends State<WeatherApp> {
                   height: 20,
                 ),
                 Text(
-                  weatherType,
+                  "${weatherType[0].toUpperCase()}${weatherType.substring(1)}",
                   style: AppFonts.w400s24.copyWith(color: AppColors.white),
                 ),
                 const SizedBox(
